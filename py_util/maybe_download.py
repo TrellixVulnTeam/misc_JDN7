@@ -1,4 +1,4 @@
-from __future__ import print_function
+# python 3 only !!
 import os
 
 
@@ -36,11 +36,14 @@ def maybe_download(data_dir, s_name, s_url):
     else:
         if not os.path.isfile(s_packed):
             print("downloading", s_name, "...")
-            import urllib
+            import urllib.request
+            import shutil
             # download_path should == s_packed
-            download_path, _ = urllib.urlretrieve(s_url, s_packed)
-            print('Successfully downloaded', download_path)
-            print("size:", os.path.getsize(download_path), 'bytes.')
+            # download_path, _ = urllib.urlretrieve(s_url, s_packed)
+            with urllib.request.urlopen(s_url) as r, open(s_packed, 'wb') as f:
+                shutil.copyfileobj(r, f)
+            print('Successfully downloaded', s_packed)
+            print("size:", os.path.getsize(s_packed), 'bytes.')
 
         # uppack downloaded source file
         print("extracting file:", s_packed)
@@ -50,15 +53,21 @@ def maybe_download(data_dir, s_name, s_url):
                 f.extractall(s_dir)
         elif s_ext == ".bz2":
             # only single file!! need file name
-            source = os.path.join(s_dir, os.path.basename(s_dir))
+            s = os.path.join(s_dir, os.path.basename(s_dir))
             import bz2
             data = bz2.BZ2File(s_packed).read()
-            with open(source, "w") as new_source:
-                new_source.write(data)
+            with open(s, "w") as s_unpack:
+                s_unpack.write(data)
         elif s_ext == ".zip":
             import zipfile
             with zipfile.ZipFile(s_packed, "r") as z:
                 z.extractall(s_dir)
+        elif s_ext == ".gz":
+            # only single file!! need file name
+            s = os.path.join(s_dir, os.path.basename(s_dir))
+            import gzip
+            with gzip.open(s_packed, "rb") as f, open(s, "wb") as s_unpack:
+                s_unpack.write(f.read())
         elif s_ext == "":
             print("no file extention")
         else:
@@ -66,7 +75,6 @@ def maybe_download(data_dir, s_name, s_url):
         print("successfully extracted file:")
 
     return s_dir
-
 
 p = maybe_download("~/Downloads/text-classification", "rt-polaritydata.tar.gz", "http://www.cs.cornell.edu/people/pabo/movie-review-data/rt-polaritydata.tar.gz")
 print(p)
